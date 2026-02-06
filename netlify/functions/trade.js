@@ -1,21 +1,16 @@
 exports.handler = async (event, context) => {
   const headers = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" };
-  
   try {
     const { pair, action, sl, tp } = JSON.parse(event.body);
-    
-    // Altın için minimum 1000 birim (10 Ounce civarı) daha sağlıklı çalışır.
-    // Satışsa eksi (-), Alışsa artı (+) değer gider.
-    const units = action === "AL" ? "1000" : "-1000"; 
-    const oandaSymbol = pair.replace("/", "_"); 
-
-    await sendTelegram(`⚠️ OPERASYON BAŞLADI!\nParite: ${pair}\nMiktar: 1000 Birim\nYön: ${action}`);
+    // Birimi sayıya çevirdik ve miktarını 100 yaptık (Daha uyumlu)
+    const units = action === "AL" ? 100 : -100; 
+    const oandaSymbol = pair.replace("/", "_");
 
     const orderBody = {
       order: {
-        units: units,
+        units: units.toString(),
         instrument: oandaSymbol,
-        timeInForce: "FOK", // Fill Or Kill: Ya hemen aç ya da iptal et
+        timeInForce: "FOK",
         type: "MARKET",
         positionFill: "DEFAULT",
         takeProfitOnFill: { price: tp.toString() },
@@ -33,31 +28,17 @@ exports.handler = async (event, context) => {
     });
 
     const oandaData = await oandaRes.json();
+    let msg = oandaData.orderFillTransaction ? `✅ EMİR İNFAZ EDİLDİ: ${pair}` : `❌ OANDA REDDETTİ: ${oandaData.errorMessage || "Limit Dışı"}`;
+    
+    // Telegram'a raporla
+    await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHAT_ID, text: `🛡️ LifeOs Operasyon Raporu:\n\n${msg}\nFiyat: ${oandaData.orderFillTransaction?.price || 'N/A'}` })
+    });
 
-    let message = "";
-    if (oandaData.orderFillTransaction) {
-      message = `✅ İŞLEM AÇILDI!\n\n${pair} @ ${oandaData.orderFillTransaction.price}\nHedef: ${tp}\nStop: ${sl}\n\nPiyami nöbette, komutanım!`;
-    } else {
-      // Hata detayını Telegram'a at ki sorunu görelim
-      message = `❌ HATA ALINDI!\nOANDA Yanıtı: ${oandaData.errorMessage || "Bilinmeyen Hata"}`;
-    }
-
-    await sendTelegram(message);
-    return { statusCode: 200, headers, body: JSON.stringify({ msg: message }) };
-
+    return { statusCode: 200, headers, body: JSON.stringify({ msg }) };
   } catch (e) {
-    await sendTelegram(`🚨 SİSTEM HATASI: ${e.message}`);
     return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
   }
 };
-
-async function sendTelegram(text) {
-  const token = process.env.TELEGRAM_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-  if(!token || !chatId) return;
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: text })
-  });
-}
