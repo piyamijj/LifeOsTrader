@@ -3,59 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piyami Terminal</title>
+    <title>Piyami PRO Terminal</title>
     <style>
-        body { font-family: sans-serif; background: #0b0e11; color: #e9eaeb; margin: 0; padding: 10px; }
-        .panel { background: #1e2329; border-radius: 10px; padding: 15px; border: 1px solid #333; margin-bottom: 10px; }
-        .radar-box { border-left: 4px solid #f0b90b; background: #2b2f36; padding: 10px; list-style: none; font-size: 0.9rem; }
+        body { font-family: 'Courier New', monospace; background: #050505; color: #00ff41; margin: 0; padding: 10px; }
+        .panel { background: #111; border: 1px solid #333; padding: 15px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,255,65,0.1); }
+        h2, h3 { margin: 0 0 10px 0; color: #f0b90b; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Radar Listesi */
+        .radar-box { list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: #ddd; }
+        .radar-box li::before { content: ">> "; color: #f0b90b; }
+
+        /* Strateji Kartları */
         .strategy-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
-        .strat-card { background: #000; padding: 8px; border-radius: 5px; font-size: 0.7rem; text-align: center; border: 1px solid #444; }
-        button { width: 100%; padding: 15px; background: #f0b90b; color: #000; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        li { color: #f0b90b; margin-bottom: 5px; }
+        .strat-card { background: #000; border: 1px solid #444; padding: 10px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .strat-card:hover { border-color: #f0b90b; box-shadow: 0 0 15px rgba(240, 185, 11, 0.3); }
+        .strat-action { font-size: 1.2rem; font-weight: bold; display: block; margin-top: 5px; }
+        .buy { color: #0f0; } .sell { color: #f00; } .wait { color: #888; }
+
+        /* Soru Kutusu */
+        textarea { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 10px; box-sizing: border-box; min-height: 60px; margin-bottom: 10px; font-family: inherit; }
+        
+        /* Butonlar */
+        .btn-group { display: flex; gap: 10px; }
+        button { flex: 1; padding: 15px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .btn-run { background: #f0b90b; color: #000; }
+        .btn-auto { background: #333; color: #fff; border: 1px solid #555; }
+        .btn-auto.active { background: #f00; color: #fff; animation: pulse 1.5s infinite; }
+
+        /* Detay Penceresi (Popup) */
+        #tradeModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; background: #000; border: 2px solid #f0b90b; z-index: 100; padding: 20px; box-shadow: 0 0 50px rgba(0,0,0,0.9); text-align: center; }
+        .modal-data { font-size: 1.2rem; margin: 15px 0; line-height: 1.6; }
+        .close-btn { background: #333; color: #fff; padding: 5px 10px; cursor: pointer; margin-top: 10px; display: inline-block; }
+
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
     </style>
 </head>
 <body>
+
     <div class="panel">
-        <h2 style="color:#f0b90b; margin:0;">🛰️ PİYAMİ RADAR</h2>
-        <div id="globalStatus" style="font-size: 0.8rem; margin: 10px 0; color: #999;">Emir bekleniyor...</div>
-        <ul id="radarElements" class="radar-box"><li>Risk taraması için butona basın...</li></ul>
+        <h2>🛰️ PİYAMİ RADAR</h2>
+        <div id="globalStatus" style="color: #00ff41; margin-bottom: 5px;">Sistem Hazır.</div>
+        <div id="aiResponse" style="font-size: 0.9rem; color: #ccc; font-style: italic; border-left: 3px solid #f0b90b; padding-left: 10px; margin: 10px 0;">
+            "Emirlerinizi bekliyorum komutanım..."
+        </div>
+        <ul id="radarElements" class="radar-box"></ul>
     </div>
 
     <div class="panel">
-        <h3 style="margin:0;">🎯 VARYANTLAR</h3>
+        <h3>🎯 OPERASYON MASASI</h3>
         <div class="strategy-grid">
-            <div class="strat-card"><b>SCALP</b><br><span id="sc_pair">-</span></div>
-            <div class="strat-card"><b>GÜNLÜK</b><br><span id="dy_pair">-</span></div>
-            <div class="strat-card"><b>HAFTALIK</b><br><span id="sw_pair">-</span></div>
+            <div class="strat-card" onclick="showTrade('scalp')">
+                SCALP (XAU)<br>
+                <span id="sc_action" class="strat-action wait">BEKLE</span>
+            </div>
+            <div class="strat-card" onclick="showTrade('day')">
+                GÜNLÜK (EUR)<br>
+                <span id="dy_action" class="strat-action wait">BEKLE</span>
+            </div>
+            <div class="strat-card" onclick="showTrade('swing')">
+                SWING (TRY)<br>
+                <span id="sw_action" class="strat-action wait">BEKLE</span>
+            </div>
         </div>
     </div>
 
-    <button id="mainBtn" onclick="calistir()">OPERASYONU BAŞLAT</button>
+    <div class="panel">
+        <textarea id="userQuestion" placeholder="Piyami'ye sor: Trend nereye gidiyor?"></textarea>
+        <div class="btn-group">
+            <button class="btn-run" onclick="runAnalysis()">ANALİZ ET</button>
+            <button class="btn-auto" id="autoBtn" onclick="toggleAuto()">NÖBETÇİ: KAPALI</button>
+        </div>
+    </div>
+
+    <div id="tradeModal">
+        <h2 style="color:#f0b90b">⚠️ İŞLEM DETAYI</h2>
+        <div id="modalContent" class="modal-data">Veri yok...</div>
+        <div class="close-btn" onclick="document.getElementById('tradeModal').style.display='none'">KAPAT</div>
+    </div>
+
+    <audio id="alertSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
     <script>
-        async function calistir() {
-            const btn = document.getElementById('mainBtn');
-            btn.innerText = "VERİ ÇEKİLİYOR...";
+        let latestData = null;
+        let autoInterval = null;
+
+        async function runAnalysis() {
+            const btn = document.querySelector('.btn-run');
+            const q = document.getElementById('userQuestion').value;
+            
+            btn.innerText = "VERİ ALINIYOR...";
+            btn.disabled = true;
+
             try {
-                // Netlify Redirects sayesinde bu adres otomatik beyni bulur
-                const res = await fetch('/api/analiz');
+                // Netlify Function'a Soruyla Birlikte İstek At
+                const res = await fetch('/api/analiz', {
+                    method: 'POST',
+                    body: JSON.stringify({ question: q })
+                });
+                
                 const text = await res.text();
-                if(!text) throw new Error("Beyinden cevap gelmedi.");
+                if(!text) throw new Error("Boş Yanıt");
                 
-                const data = JSON.parse(text);
+                latestData = JSON.parse(text);
+
+                // 1. Ekranı Güncelle
+                document.getElementById('globalStatus').innerText = latestData.globalStatus;
+                document.getElementById('aiResponse').innerText = `"${latestData.aiResponse}"`;
                 
-                document.getElementById('globalStatus').innerText = data.globalStatus;
-                document.getElementById('radarElements').innerHTML = data.radarElements.map(e => `<li>• ${e}</li>`).join('');
-                
-                if(data.strategies) {
-                    document.getElementById('sc_pair').innerText = data.strategies.scalp.pair;
-                    document.getElementById('dy_pair').innerText = data.strategies.day?.pair || "EUR/USD";
-                    document.getElementById('sw_pair').innerText = data.strategies.swing?.pair || "USD/TRY";
+                const radarUl = document.getElementById('radarElements');
+                radarUl.innerHTML = latestData.radarElements.map(e => `<li>${e}</li>`).join('');
+
+                // 2. Kartları Güncelle
+                if(latestData.strategies) {
+                    updateCard('sc', latestData.strategies.scalp);
+                    updateCard('dy', latestData.strategies.day);
+                    updateCard('sw', latestData.strategies.swing);
                 }
-                btn.innerText = "RADAR AKTİF";
+
+                btn.innerText = "ANALİZ ET";
             } catch (e) {
                 alert("Hata: " + e.message);
-                btn.innerText = "YENİDEN DENE";
+                btn.innerText = "TEKRAR DENE";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function updateCard(prefix, strategy) {
+            const el = document.getElementById(prefix + '_action');
+            el.innerText = strategy.action;
+            el.className = 'strat-action ' + (strategy.action === 'AL' ? 'buy' : strategy.action === 'SAT' ? 'sell' : 'wait');
+            
+            // Eğer Nöbetçi Modu açıksa ve AL/SAT sinyali varsa ses çal
+            if(autoInterval && (strategy.action === 'AL' || strategy.action === 'SAT')) {
+                document.getElementById('alertSound').play();
+            }
+        }
+
+        function showTrade(type) {
+            if(!latestData || !latestData.strategies) {
+                alert("Önce analiz yapmalısınız komutanım!");
+                return;
+            }
+            const s = latestData.strategies[type];
+            const modal = document.getElementById('tradeModal');
+            const content = document.getElementById('modalContent');
+            
+            content.innerHTML = `
+                <b>PARİTE:</b> ${s.pair}<br>
+                <b>YÖN:</b> <span style="color:${s.action==='AL'?'#0f0':'#f00'}">${s.action}</span><br>
+                ----------------<br>
+                <b>GİRİŞ:</b> ${s.price}<br>
+                <b>HEDEF (TP):</b> ${s.tp}<br>
+                <b>STOP (SL):</b> ${s.sl}<br>
+            `;
+            modal.style.display = 'block';
+        }
+
+        function toggleAuto() {
+            const btn = document.getElementById('autoBtn');
+            if(autoInterval) {
+                clearInterval(autoInterval);
+                autoInterval = null;
+                btn.innerText = "NÖBETÇİ: KAPALI";
+                btn.classList.remove('active');
+            } else {
+                // 60 saniyede bir otomatik analiz yap
+                runAnalysis();
+                autoInterval = setInterval(runAnalysis, 60000); 
+                btn.innerText = "NÖBETÇİ: AÇIK";
+                btn.classList.add('active');
+                alert("Nöbetçi Modu Aktif! Ekranı açık bırakın, sinyal gelince sesli uyaracağım.");
             }
         }
     </script>
