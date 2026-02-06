@@ -3,22 +3,23 @@ exports.handler = async (event, context) => {
   
   try {
     const { pair, action, sl, tp } = JSON.parse(event.body);
-    const units = action === "AL" ? "1" : "-1"; // Demo için 1000 birim (Test)
-    const oandaSymbol = pair.replace("/", "_"); // XAU/USD -> XAU_USD
+    
+    // Altın için minimum 1000 birim (10 Ounce civarı) daha sağlıklı çalışır.
+    // Satışsa eksi (-), Alışsa artı (+) değer gider.
+    const units = action === "AL" ? "1000" : "-1000"; 
+    const oandaSymbol = pair.replace("/", "_"); 
 
-    // 1. TELEGRAM'A "EMİR ALINDI" MESAJI AT
-    await sendTelegram(`⚠️ KOMUTANIM! Emir Alındı: ${pair} - ${action}\nİşlem başlatılıyor...`);
+    await sendTelegram(`⚠️ OPERASYON BAŞLADI!\nParite: ${pair}\nMiktar: 1000 Birim\nYön: ${action}`);
 
-    // 2. OANDA DEMO HESABINA EMRİ GİR
     const orderBody = {
       order: {
         units: units,
         instrument: oandaSymbol,
-        timeInForce: "FOK",
+        timeInForce: "FOK", // Fill Or Kill: Ya hemen aç ya da iptal et
         type: "MARKET",
         positionFill: "DEFAULT",
-        takeProfitOnFill: { price: tp },
-        stopLossOnFill: { price: sl }
+        takeProfitOnFill: { price: tp.toString() },
+        stopLossOnFill: { price: sl.toString() }
       }
     };
 
@@ -33,23 +34,19 @@ exports.handler = async (event, context) => {
 
     const oandaData = await oandaRes.json();
 
-    // 3. SONUCU TELEGRAM'A RAPORLA
     let message = "";
     if (oandaData.orderFillTransaction) {
-      const price = oandaData.orderFillTransaction.price;
-      message = `✅ BAŞARILI!\n\nİşlem: ${pair}\nYön: ${action}\nGiriş Fiyatı: ${price}\nHedef (TP): ${tp}\nStop (SL): ${sl}\n\nCephedeyim Komutanım!`;
-    } else if (oandaData.orderCancelTransaction) {
-      message = `❌ İŞLEM İPTAL OLDU!\nSebep: ${oandaData.orderCancelTransaction.reason}`;
+      message = `✅ İŞLEM AÇILDI!\n\n${pair} @ ${oandaData.orderFillTransaction.price}\nHedef: ${tp}\nStop: ${sl}\n\nPiyami nöbette, komutanım!`;
     } else {
-      message = `⚠️ OANDA Durumu: ${JSON.stringify(oandaData)}`;
+      // Hata detayını Telegram'a at ki sorunu görelim
+      message = `❌ HATA ALINDI!\nOANDA Yanıtı: ${oandaData.errorMessage || "Bilinmeyen Hata"}`;
     }
 
     await sendTelegram(message);
-    
-    return { statusCode: 200, headers, body: JSON.stringify({ status: "Tamam", msg: message }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ msg: message }) };
 
   } catch (e) {
-    await sendTelegram(`🚨 HATA OLUŞTU: ${e.message}`);
+    await sendTelegram(`🚨 SİSTEM HATASI: ${e.message}`);
     return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
   }
 };
