@@ -3,7 +3,7 @@ exports.handler = async (event, context) => {
   
   try {
     const { pair, action, sl, tp } = JSON.parse(event.body);
-    const units = action === "AL" ? "1" : "-1"; // Demo için 1 birim (Test)
+    const units = action === "AL" ? "1" : "-1"; // Demo için 1000 birim (Test)
     const oandaSymbol = pair.replace("/", "_"); // XAU/USD -> XAU_USD
 
     // 1. TELEGRAM'A "EMİR ALINDI" MESAJI AT
