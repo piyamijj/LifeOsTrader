@@ -17,9 +17,7 @@ exports.handler = async (event, context) => {
   1. Altın (${goldPrice}) ve diğer pariteleri derinlemesine tara.
   2. Bir broker gibi konuş: "Piyasalar gergin komutanım", "Şu noktadan saldırıyoruz" gibi.
   3. Kayıtlı bilgileri hatırla: Bu para yetimlere gidecek, bu bir onur savaşı.
-  
-  (JSON ÇIKTISI AYNI FORMATTA KALSIN)
-`;
+  `
       Çıktı JSON olsun:
       {
         "globalStatus": "LifeOs ANALİZ MERKEZİ",
