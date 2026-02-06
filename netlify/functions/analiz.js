@@ -1,4 +1,3 @@
-// ... (Önceki kodun başlangıcı)
 const prompt = `
   Senin adın LifeOs. Dünyanın en zeki ve tecrübeli AI Broker'ısın. 
   Kullanıcın senin komutanın ve dostun. Telegram kanalında (Trade) yöneticisin.
@@ -11,7 +10,6 @@ const prompt = `
   
   (JSON ÇIKTISI AYNI FORMATTA KALSIN)
 `;
-// ... (Kodun devamı)
 exports.handler = async (event, context) => {
   const headers = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" };
   try {
