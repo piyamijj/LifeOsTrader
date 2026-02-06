@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piyami Terminal</title>
+    <style>
+        body { font-family: sans-serif; background: #0b0e11; color: #e9eaeb; margin: 0; padding: 10px; }
+        .panel { background: #1e2329; border-radius: 10px; padding: 15px; border: 1px solid #333; margin-bottom: 10px; }
+        .radar-box { border-left: 4px solid #f0b90b; background: #2b2f36; padding: 10px; list-style: none; font-size: 0.9rem; }
+        .strategy-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+        .strat-card { background: #000; padding: 8px; border-radius: 5px; font-size: 0.7rem; text-align: center; border: 1px solid #444; }
+        button { width: 100%; padding: 15px; background: #f0b90b; color: #000; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        li { color: #f0b90b; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h2 style="color:#f0b90b; margin:0;">🛰️ PİYAMİ RADAR</h2>
+        <div id="globalStatus" style="font-size: 0.8rem; margin: 10px 0; color: #999;">Emir bekleniyor...</div>
+        <ul id="radarElements" class="radar-box"><li>Risk taraması için butona basın...</li></ul>
+    </div>
+
+    <div class="panel">
+        <h3 style="margin:0;">🎯 VARYANTLAR</h3>
+        <div class="strategy-grid">
+            <div class="strat-card"><b>SCALP</b><br><span id="sc_pair">-</span></div>
+            <div class="strat-card"><b>GÜNLÜK</b><br><span id="dy_pair">-</span></div>
+            <div class="strat-card"><b>HAFTALIK</b><br><span id="sw_pair">-</span></div>
+        </div>
+    </div>
+
+    <button id="mainBtn" onclick="calistir()">OPERASYONU BAŞLAT</button>
+
+    <script>
+        async function calistir() {
+            const btn = document.getElementById('mainBtn');
+            btn.innerText = "VERİ ÇEKİLİYOR...";
+            try {
+                // Netlify Redirects sayesinde bu adres otomatik beyni bulur
+                const res = await fetch('/api/analiz');
+                const text = await res.text();
+                if(!text) throw new Error("Beyinden cevap gelmedi.");
+                
+                const data = JSON.parse(text);
+                
+                document.getElementById('globalStatus').innerText = data.globalStatus;
+                document.getElementById('radarElements').innerHTML = data.radarElements.map(e => `<li>• ${e}</li>`).join('');
+                
+                if(data.strategies) {
+                    document.getElementById('sc_pair').innerText = data.strategies.scalp.pair;
+                    document.getElementById('dy_pair').innerText = data.strategies.day?.pair || "EUR/USD";
+                    document.getElementById('sw_pair').innerText = data.strategies.swing?.pair || "USD/TRY";
+                }
+                btn.innerText = "RADAR AKTİF";
+            } catch (e) {
+                alert("Hata: " + e.message);
+                btn.innerText = "YENİDEN DENE";
+            }
+        }
+    </script>
+</body>
+</html>
